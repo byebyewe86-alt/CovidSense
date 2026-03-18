@@ -2,6 +2,7 @@
 app.py — Interactive Epidemic Dashboard
 ========================================
 Built with Plotly Dash for CovidSense India.
+Gen AI powered by Groq Llama 3.3
 """
 
 import pandas as pd
@@ -11,11 +12,66 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import dash
 from dash import dcc, html, Input, Output
-import json
+from groq import Groq
 
-from model import (load_india_data, calculate_daily_new_cases,
-                   train_model, predict_next_7_days,
-                   get_trend, get_risk_level)
+from model import (load_india_data,
+                   calculate_daily_new_cases,
+                   train_model,
+                   predict_next_7_days,
+                   get_trend,
+                   get_risk_level)
+
+# ==============================================================
+# GROQ AI CLIENT
+# ==============================================================
+
+groq_client = Groq(
+    api_key="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"
+)
+
+def generate_ai_analysis(predictions, risk,
+                          trend, top_states):
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{
+                "role": "user",
+                "content": f"""
+You are a public health analyst for India.
+
+Current COVID situation data:
+- 7 day predictions: {predictions}
+- Risk Level: {risk}
+- Trend: {trend}
+- Top 3 high risk states: {top_states}
+
+Write a situation report with EXACTLY
+these 3 sections:
+
+FOR HEALTH OFFICIALS:
+(2-3 technical sentences about the
+prediction, what actions to take,
+which states need attention)
+
+FOR CITIZENS:
+(2-3 simple sentences in plain English,
+what ordinary Indians should do this week,
+mention specific Indian context like
+markets, public transport, festivals)
+
+HISTORICAL CONTEXT:
+(1-2 sentences comparing this pattern
+to India's past COVID waves — Wave 1 2020,
+Delta 2021, Omicron 2022)
+
+Be specific to India. Be actionable.
+Do not use generic advice.
+"""
+            }]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"AI analysis unavailable: {str(e)}"
 
 
 # ==============================================================
@@ -83,10 +139,13 @@ def create_dummy_state_data():
             "#FF4444" if s >= 70
             else "#FFA500" if s >= 40
             else "#44BB44"
-            for s in np.random.uniform(20, 90, len(states))
+            for s in np.random.uniform(
+                20, 90, len(states)
+            )
         ]
     })
-    return df.sort_values("Severity", ascending=False)
+    return df.sort_values("Severity",
+                           ascending=False)
 
 
 # ==============================================================
@@ -159,18 +218,27 @@ def create_forecast_chart(daily_cases,
         line=dict(color='#4488FF', width=2),
         mode='lines+markers',
         marker=dict(size=4),
-        hovertemplate='Day %{x}: %{y:,} cases<extra></extra>'
+        hovertemplate=(
+            'Day %{x}: %{y:,} cases'
+            '<extra></extra>'
+        )
     ))
 
     fig.add_trace(go.Scatter(
         x=pred_x,
         y=predictions,
         name='Predicted Cases',
-        line=dict(color='#FF4444', width=2,
-                  dash='dash'),
+        line=dict(
+            color='#FF4444',
+            width=2,
+            dash='dash'
+        ),
         mode='lines+markers',
         marker=dict(size=6, symbol='diamond'),
-        hovertemplate='Day +%{x}: %{y:,} cases<extra></extra>'
+        hovertemplate=(
+            'Day +%{x}: %{y:,} cases'
+            '<extra></extra>'
+        )
     ))
 
     fig.add_vline(
@@ -237,12 +305,20 @@ def create_severity_gauge(severity_score,
                  'color': '#4a1a1a'}
             ],
             'threshold': {
-                'line': {'color': 'white', 'width': 3},
+                'line': {
+                    'color': 'white',
+                    'width': 3
+                },
                 'thickness': 0.75,
                 'value': severity_score
             }
         },
-        number={'font': {'color': 'white', 'size': 40}},
+        number={
+            'font': {
+                'color': 'white',
+                'size': 40
+            }
+        },
     ))
 
     fig.add_annotation(
@@ -273,15 +349,20 @@ def create_wave_timeline(daily_cases):
         name='Daily Cases',
         line=dict(color='#4488FF', width=1),
         fillcolor='rgba(68, 136, 255, 0.3)',
-        hovertemplate='Day %{x}: %{y:,} cases<extra></extra>'
+        hovertemplate=(
+            'Day %{x}: %{y:,} cases'
+            '<extra></extra>'
+        )
     ))
 
     waves = [
         dict(x=150, label="Wave 1",
              color="#FFD700"),
-        dict(x=430, label="Wave 2\n(Delta)",
+        dict(x=430,
+             label="Wave 2\n(Delta)",
              color="#FF4444"),
-        dict(x=660, label="Wave 3\n(Omicron)",
+        dict(x=660,
+             label="Wave 3\n(Omicron)",
              color="#FF8C00")
     ]
 
@@ -331,8 +412,11 @@ def create_vaccination_chart(daily_cases,
 
     fig.add_trace(
         go.Scatter(
-            x=list(range(len(daily_cases[-400:]))),
-            y=[int(c) for c in daily_cases[-400:]],
+            x=list(range(
+                len(daily_cases[-400:])
+            )),
+            y=[int(c) for c in
+               daily_cases[-400:]],
             name='Daily Cases',
             line=dict(color='#FF4444', width=2)
         ),
@@ -430,7 +514,7 @@ def create_top_states_bar(hotspot_df):
 
 
 # ==============================================================
-# DASH APP LAYOUT
+# INITIALIZE APP + LOAD DATA
 # ==============================================================
 
 app = dash.Dash(
@@ -453,6 +537,23 @@ future_avg = sum(preds) / 7
 change = ((future_avg - recent_avg) /
            max(recent_avg, 1)) * 100
 national_severity = min(100, max(0, 50 + change))
+
+ai_trend = get_trend(change)
+ai_risk = get_risk_level(change)
+top_states = DASHBOARD_DATA[
+    'hotspot_df'
+]['State'].head(3).tolist()
+
+print("Generating AI analysis...")
+AI_ANALYSIS = generate_ai_analysis(
+    preds, ai_risk, ai_trend, top_states
+)
+print("AI analysis ready!")
+
+
+# ==============================================================
+# LAYOUT
+# ==============================================================
 
 app.layout = html.Div(
     style={
@@ -482,15 +583,16 @@ app.layout = html.Div(
                     }
                 ),
                 html.P(
-                    "Epidemic Spread Intelligence — Track C",
+                    "Epidemic Spread Intelligence "
+                    "— Track C",
                     style={
                         'color': '#aaaaaa',
                         'margin': '5px 0 0 0'
                     }
                 ),
                 html.Div(
-                    f"📅 {len(daily)} days analyzed | "
-                    f"36 states monitored",
+                    f"📅 {len(daily)} days analyzed"
+                    f" | 36 states monitored",
                     style={
                         'color': '#666',
                         'fontSize': '0.85rem',
@@ -519,7 +621,9 @@ app.layout = html.Div(
                         dcc.Graph(
                             id='india-map',
                             figure=create_india_map(
-                                DASHBOARD_DATA['hotspot_df']
+                                DASHBOARD_DATA[
+                                    'hotspot_df'
+                                ]
                             ),
                             config={
                                 'displayModeBar': False
@@ -537,7 +641,8 @@ app.layout = html.Div(
                     children=[
                         html.Div(
                             style={
-                                'backgroundColor': '#1a1a2e',
+                                'backgroundColor':
+                                    '#1a1a2e',
                                 'borderRadius': '12px',
                                 'padding': '10px'
                             },
@@ -552,14 +657,16 @@ app.layout = html.Div(
                                         "India"
                                     ),
                                     config={
-                                        'displayModeBar': False
+                                        'displayModeBar':
+                                            False
                                     }
                                 )
                             ]
                         ),
                         html.Div(
                             style={
-                                'backgroundColor': '#1a1a2e',
+                                'backgroundColor':
+                                    '#1a1a2e',
                                 'borderRadius': '12px',
                                 'padding': '10px'
                             },
@@ -567,10 +674,13 @@ app.layout = html.Div(
                                 dcc.Graph(
                                     id='top-states-bar',
                                     figure=create_top_states_bar(
-                                        DASHBOARD_DATA['hotspot_df']
+                                        DASHBOARD_DATA[
+                                            'hotspot_df'
+                                        ]
                                     ),
                                     config={
-                                        'displayModeBar': False
+                                        'displayModeBar':
+                                            False
                                     }
                                 )
                             ]
@@ -680,6 +790,49 @@ app.layout = html.Div(
             ]
         ),
 
+        # ROW 5: AI ANALYSIS SECTION
+        html.Div(
+            style={
+                'backgroundColor': '#1a1a2e',
+                'borderRadius': '12px',
+                'padding': '25px',
+                'marginBottom': '20px',
+                'border': '1px solid #4488FF'
+            },
+            children=[
+                html.H2(
+                    "🤖 AI Situation Report",
+                    style={
+                        'color': '#4488FF',
+                        'marginBottom': '15px',
+                        'fontSize': '1.4rem'
+                    }
+                ),
+                html.P(
+                    "Powered by Groq Llama 3.3 — "
+                    "Translating ML predictions into "
+                    "actionable public health guidance",
+                    style={
+                        'color': '#666',
+                        'fontSize': '0.85rem',
+                        'marginBottom': '20px'
+                    }
+                ),
+                html.Div(
+                    style={
+                        'whiteSpace': 'pre-wrap',
+                        'lineHeight': '1.8',
+                        'color': '#cccccc',
+                        'fontSize': '0.95rem',
+                        'backgroundColor': '#0d0d1a',
+                        'padding': '20px',
+                        'borderRadius': '8px'
+                    },
+                    children=AI_ANALYSIS
+                )
+            ]
+        ),
+
         # FOOTER
         html.Div(
             style={
@@ -695,7 +848,9 @@ app.layout = html.Div(
                 ),
                 html.P(
                     "Data: JHU CSSE + OWID | "
-                    "Model: Linear Regression + Log Transform"
+                    "Model: Linear Regression "
+                    "+ Log Transform | "
+                    "AI: Groq Llama 3.3"
                 )
             ]
         )
@@ -748,10 +903,14 @@ def update_state_view(selected_state):
                 if isinstance(preds_str, str):
                     preds = [
                         int(x) for x in
-                        preds_str.strip('[]').split(',')
+                        preds_str.strip(
+                            '[]'
+                        ).split(',')
                     ]
                 else:
-                    preds = DASHBOARD_DATA['predictions']
+                    preds = DASHBOARD_DATA[
+                        'predictions'
+                    ]
             except Exception:
                 preds = DASHBOARD_DATA['predictions']
 
@@ -771,6 +930,7 @@ def update_state_view(selected_state):
 # ==============================================================
 # RUN
 # ==============================================================
+
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("  CovidSense India Dashboard")
