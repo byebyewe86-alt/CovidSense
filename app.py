@@ -13,6 +13,10 @@ from plotly.subplots import make_subplots
 import dash
 from dash import dcc, html, Input, Output
 from groq import Groq
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 from model import (load_india_data,
                    calculate_daily_new_cases,
@@ -26,7 +30,7 @@ from model import (load_india_data,
 # ==============================================================
 
 groq_client = Groq(
-    api_key="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"
+    api_key=os.getenv("GROQ_API_KEY")
 )
 
 def generate_ai_analysis(predictions, risk,

@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+static/prediction.png
+data/hotspot_results.csv
