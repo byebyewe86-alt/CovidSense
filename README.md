@@ -183,8 +183,7 @@ Open browser and go to: http://127.0.0.1:8050
 
 ## 🚀 Live Demo
 
-> Live link will be added after deployment on Render
-
+> Live Demo: https://covidsense-india.onrender.com
 ---
 
 ## ⚠️ Honest Notes
