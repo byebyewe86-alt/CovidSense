@@ -625,13 +625,9 @@ app.layout = html.Div(
                         dcc.Graph(
                             id='india-map',
                             figure=create_india_map(
-                                DASHBOARD_DATA[
-                                    'hotspot_df'
-                                ]
+                                DASHBOARD_DATA['hotspot_df']
                             ),
-                            config={
-                                'displayModeBar': False
-                            }
+                            config={'displayModeBar': False}
                         )
                     ]
                 ),
@@ -645,8 +641,7 @@ app.layout = html.Div(
                     children=[
                         html.Div(
                             style={
-                                'backgroundColor':
-                                    '#1a1a2e',
+                                'backgroundColor': '#1a1a2e',
                                 'borderRadius': '12px',
                                 'padding': '10px'
                             },
@@ -654,23 +649,16 @@ app.layout = html.Div(
                                 dcc.Graph(
                                     id='severity-gauge',
                                     figure=create_severity_gauge(
-                                        round(
-                                            national_severity,
-                                            1
-                                        ),
+                                        round(national_severity, 1),
                                         "India"
                                     ),
-                                    config={
-                                        'displayModeBar':
-                                            False
-                                    }
+                                    config={'displayModeBar': False}
                                 )
                             ]
                         ),
                         html.Div(
                             style={
-                                'backgroundColor':
-                                    '#1a1a2e',
+                                'backgroundColor': '#1a1a2e',
                                 'borderRadius': '12px',
                                 'padding': '10px'
                             },
@@ -678,14 +666,9 @@ app.layout = html.Div(
                                 dcc.Graph(
                                     id='top-states-bar',
                                     figure=create_top_states_bar(
-                                        DASHBOARD_DATA[
-                                            'hotspot_df'
-                                        ]
+                                        DASHBOARD_DATA['hotspot_df']
                                     ),
-                                    config={
-                                        'displayModeBar':
-                                            False
-                                    }
+                                    config={'displayModeBar': False}
                                 )
                             ]
                         )
@@ -709,19 +692,10 @@ app.layout = html.Div(
                 dcc.Dropdown(
                     id='state-dropdown',
                     options=[
-                        {
-                            'label': 'India (National)',
-                            'value': 'India'
-                        }
+                        {'label': 'India (National)', 'value': 'India'}
                     ] + [
-                        {
-                            'label': row['State'],
-                            'value': row['State']
-                        }
-                        for _, row in
-                        DASHBOARD_DATA[
-                            'hotspot_df'
-                        ].iterrows()
+                        {'label': row['State'], 'value': row['State']}
+                        for _, row in DASHBOARD_DATA['hotspot_df'].iterrows()
                     ],
                     value='India',
                     style={
@@ -846,14 +820,10 @@ app.layout = html.Div(
                 'paddingTop': '15px'
             },
             children=[
-                html.P(
-                    "CovidSense India | "
-                    "CodeCure Biohackathon | Track C"
-                ),
+                html.P("CovidSense India | CodeCure Biohackathon | Track C"),
                 html.P(
                     "Data: JHU CSSE + OWID | "
-                    "Model: Linear Regression "
-                    "+ Log Transform | "
+                    "Model: Linear Regression + Log Transform | "
                     "AI: Groq Llama 3.3"
                 )
             ]
@@ -874,21 +844,17 @@ app.layout = html.Div(
 def update_state_view(selected_state):
     hotspot_df = DASHBOARD_DATA['hotspot_df']
 
-    if selected_state == 'India' or \
-       selected_state is None:
+    if selected_state == 'India' or selected_state is None:
         forecast = create_forecast_chart(
             DASHBOARD_DATA['daily_cases'],
             DASHBOARD_DATA['predictions'],
             "India"
         )
         gauge = create_severity_gauge(
-            round(national_severity, 1),
-            "India"
+            round(national_severity, 1), "India"
         )
     else:
-        state_row = hotspot_df[
-            hotspot_df['State'] == selected_state
-        ]
+        state_row = hotspot_df[hotspot_df['State'] == selected_state]
 
         if state_row.empty:
             forecast = create_forecast_chart(
@@ -896,25 +862,18 @@ def update_state_view(selected_state):
                 DASHBOARD_DATA['predictions'],
                 selected_state
             )
-            gauge = create_severity_gauge(
-                50.0, selected_state
-            )
+            gauge = create_severity_gauge(50.0, selected_state)
         else:
             row = state_row.iloc[0]
-
             try:
                 preds_str = row['Predictions']
                 if isinstance(preds_str, str):
                     preds = [
                         int(x) for x in
-                        preds_str.strip(
-                            '[]'
-                        ).split(',')
+                        preds_str.strip('[]').split(',')
                     ]
                 else:
-                    preds = DASHBOARD_DATA[
-                        'predictions'
-                    ]
+                    preds = DASHBOARD_DATA['predictions']
             except Exception:
                 preds = DASHBOARD_DATA['predictions']
 
@@ -924,15 +883,16 @@ def update_state_view(selected_state):
                 selected_state
             )
             gauge = create_severity_gauge(
-                float(row['Severity']),
-                selected_state
+                float(row['Severity']), selected_state
             )
 
     return forecast, gauge
 
 
 # ==============================================================
-# RUN
+# RUN — Fixed for Render deployment
+# os.environ.get('PORT') lets Render control the port
+# debug=False is required for production deployment
 # ==============================================================
 
 if __name__ == "__main__":
@@ -940,4 +900,5 @@ if __name__ == "__main__":
     print("  CovidSense India Dashboard")
     print("  Open: http://127.0.0.1:8050")
     print("=" * 60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=8050)
+    port = int(os.environ.get('PORT', 8050))
+    app.run(debug=False, host='0.0.0.0', port=port)
