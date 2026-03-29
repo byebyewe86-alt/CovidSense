@@ -1,5 +1,6 @@
 .env
 __pycache__/
 *.pyc
+.vscode/
 static/prediction.png
 data/hotspot_results.csv
