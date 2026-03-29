@@ -34,6 +34,51 @@ CovidSense answers all three questions in one dashboard.
 
 ---
 
+## 🛠️ Tech Stack & Tools
+
+| Category | Technology |
+|---|---|
+| Language | Python 3 |
+| Data Processing | Pandas, NumPy |
+| Machine Learning | Scikit-learn (Linear Regression) |
+| Dashboard | Plotly Dash |
+| Visualization | Plotly Express, Plotly Graph Objects |
+| Data Sources | JHU CSSE, covid19india.org, OWID |
+| Deployment | Render (free hosting) |
+| Version Control | Git + GitHub |
+
+---
+
+## ⚙️ Technical Workflow
+
+```
+Step 1: DATA LOADING
+        Load JHU CSV → filter India rows → extract date columns
+
+Step 2: PREPROCESSING
+        Cumulative cases → daily new cases → 7-day smoothing
+
+Step 3: FEATURE ENGINEERING
+        Apply log transformation → create 14-day sliding windows
+
+Step 4: MODEL TRAINING
+        Train Linear Regression on log-transformed windows
+
+Step 5: PREDICTION
+        Predict next 7 days iteratively → apply 35% growth cap
+        → convert back from log scale
+
+Step 6: SEVERITY INDEX
+        Combine case score + death score + recovery lag
+        → single 0-100 score per state
+
+Step 7: DASHBOARD
+        Feed all results into Plotly Dash
+        → 6 interactive graphs → deployed on Render
+```
+
+---
+
 ## 🧠 Concepts I Learned and Used
 
 ### Log Transformation
@@ -81,9 +126,9 @@ CovidSense/
 │   ├── covid_data.csv       ← JHU COVID data (national)
 │   ├── state_data.csv       ← India state-wise data
 │   └── vaccine_data.csv     ← Vaccination data (OWID)
-├── model.py                 ← Main prediction model
-├── hotspot.py               ← State-wise risk scoring
 ├── app.py                   ← Interactive dashboard
+├── hotspot.py               ← State-wise risk scoring
+├── model.py                 ← Main prediction model
 ├── requirements.txt         ← Libraries needed
 └── README.md                ← This file
 ```
@@ -113,22 +158,22 @@ CovidSense/
 
 ## ⚙️ How to Run
 
-Step 1 — Install libraries
+**Step 1 — Install libraries**
 ```bash
 pip install pandas numpy scikit-learn plotly dash
 ```
 
-Step 2 — Test the prediction model
+**Step 2 — Test the prediction model**
 ```bash
 python model.py
 ```
 
-Step 3 — Generate state risk scores
+**Step 3 — Generate state risk scores**
 ```bash
 python hotspot.py
 ```
 
-Step 4 — Launch the dashboard
+**Step 4 — Launch the dashboard**
 ```bash
 python app.py
 ```
@@ -138,7 +183,7 @@ Open browser and go to: http://127.0.0.1:8050
 
 ## 🚀 Live Demo
 
-Live link will be added after deployment on Render
+> Live link will be added after deployment on Render
 
 ---
 
@@ -146,6 +191,7 @@ Live link will be added after deployment on Render
 
 - I am a 1st year student participating solo
 - I used AI assistance to help write and debug parts of the code
+- I made sure to understand every function and concept
 
 
 ---
